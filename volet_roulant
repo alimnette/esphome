@@ -1,0 +1,115 @@
+esphome:
+  name: volet
+  platform: ESP8266
+  board: esp8285
+
+wifi:
+  ssid: "Arcadia_IOT_AP"
+  password: !secret Wifi_Password
+  ap:
+    ssid: "Wifi_recovery"
+    password: "password"
+  domain: domain
+
+logger:
+
+api:
+  password: !secret API_Password
+
+ota:
+  password: !secret OTA_Password
+  
+web_server:
+  port: 80
+  
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal Sensor"
+    update_interval: 60s
+    
+output:
+  - platform: gpio
+    id: up_switch
+    pin: 
+      number: GPIO5
+      mode: OUTPUT
+
+  - platform: gpio
+    id: down_switch
+    pin: 
+      number: GPIO12
+      mode: OUTPUT
+
+  - platform: gpio
+    id: led
+    pin: 
+      inverted: true
+      number: GPIO13 
+      mode: OUTPUT
+      
+binary_sensor:
+  - platform: gpio
+    pin:
+      inverted: true
+      number: GPIO0
+      mode: INPUT_PULLUP
+    name: "Open"
+    on_press:
+      then:
+        - lambda: |
+            if (id(volet).current_operation == COVER_OPERATION_IDLE) {
+              id(volet).open();
+            } else {
+              id(volet).stop();
+            }
+
+  - platform: gpio
+    pin:
+      inverted: true
+      number: GPIO9
+      mode: INPUT_PULLUP
+    name: "Close"
+    on_press:
+      then:
+        - lambda: |
+            if (id(volet).current_operation == COVER_OPERATION_IDLE) {
+                id(volet).close();
+            } else {
+              id(volet).stop();
+            }
+      
+  - platform: gpio
+    pin:
+      inverted: true
+      number: GPIO10
+      mode: INPUT_PULLUP
+    name: "Stop"
+    on_press:
+      then:
+      - cover.stop: volet
+          
+cover:
+  - platform: time_based
+    name: "Volet 1"
+    id: volet
+    device_class: shutter
+    
+    open_action:
+      - output.turn_on: led
+      - output.turn_off: down_switch
+      - output.turn_on: up_switch
+    open_duration: 30s
+
+    close_action:
+      - output.turn_on: led
+      - output.turn_off: up_switch
+      - output.turn_on: down_switch
+    close_duration: 28s
+      
+    stop_action:
+      - output.turn_off: led
+      - output.turn_off: up_switch
+      - output.turn_off: down_switch
+      
+#    optimistic: true
+#    assumed_state: true
